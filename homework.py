@@ -1,4 +1,3 @@
-import json
 import os
 import sys
 import time
@@ -15,7 +14,7 @@ PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
-RETRY_PERIOD = 600 # Секунд
+RETRY_PERIOD = 600  # Секунд
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
@@ -102,8 +101,8 @@ def check_response(response):
 
     if 'homeworks' not in response or 'current_date' not in response:
         error = ('Отсутсвуют ожидаемые ключи в ответе API. '
-                'Необходимы ключи homeworks и current_date. '
-                f'Содержимое ответа: {response}')
+                 'Необходимы ключи homeworks и current_date. '
+                 f'Содержимое ответа: {response}')
         logger.error(error)
         raise KeyError(error)
 
