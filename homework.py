@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import time
@@ -14,7 +15,7 @@ PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
-RETRY_PERIOD = 600
+RETRY_PERIOD = 600 # Секунд
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
@@ -50,8 +51,6 @@ def check_tokens():
             f'Отсутствует обязательная переменная окружения:'
             f'{empty_token}\nПрограмма принудительно остановлена.'
         )
-    else:
-        print('Токены на месте')
 
 
 def send_message(bot, message):
@@ -68,6 +67,12 @@ def send_message(bot, message):
 def get_api_answer(timestamp):
     """Запрос к единственному эндпоинту API-сервиса."""
     params = {'from_date': timestamp}
+
+    try:
+        from json.decoder import JSONDecodeError
+    except ImportError:
+        JSONDecodeError = ValueError
+
     try:
         homework_statuses = requests.get(ENDPOINT,
                                          headers=HEADERS,
@@ -79,23 +84,34 @@ def get_api_answer(timestamp):
     if homework_statuses.status_code != 200:
         raise Exception('Эндпоинт недоступен')
 
-    return homework_statuses.json()
+    try:
+        print(homework_statuses.json())
+        return homework_statuses.json()
+    except JSONDecodeError:
+        logger.error('Ответ API сервиса не преобразован в формат JSON')
+        raise Exception('Ответ API сервиса не преобразован в формат JSON')
 
 
 def check_response(response):
     """Проверяет ответ API на соответствие документации."""
     if not isinstance(response, dict):
-        logger.error('Ожидаемый тип данных словарь')
-        raise TypeError('Ожидаемый тип данных словарь')
+        logger.error('Не верный тип данных. Ожидаемый тип данных словарь. '
+                     f'Получен {type(response)}')
+        raise TypeError('Не верный тип данных. Ожидаемый тип данных словарь. '
+                        f'Получен {type(response)}')
 
     if 'homeworks' not in response or 'current_date' not in response:
-        error = 'Отсутсвуют ожидаемые ключи в ответе API'
+        error = ('Отсутсвуют ожидаемые ключи в ответе API. '
+                'Необходимы ключи homeworks и current_date. '
+                f'Содержимое ответа: {response}')
         logger.error(error)
         raise KeyError(error)
 
     if not isinstance(response.get('homeworks'), list):
-        logger.error('Ожидаемый тип данных список')
-        raise TypeError('Ожидаемый тип данных список')
+        logger.error('Не верный тип данных. Ожидаемый тип данных список. '
+                     f'Получен {type(response.get("homeworks"))}')
+        raise TypeError('Не верный тип данных. Ожидаемый тип данных список. '
+                        f'Получен {type(response.get("homeworks"))}')
 
     if not response.get('homeworks'):
         return None
